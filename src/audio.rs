@@ -437,7 +437,7 @@ fn afe_worker(afe_handle: Arc<AFE>, tx: MicTx) -> anyhow::Result<()> {
     }
 }
 
-const WELCOME_WAV: &[u8] = include_bytes!("../assets/welcome.wav");
+const WELCOME_WAV: &[u8] = include_bytes!("../assets/hello.wav");
 
 pub fn player_welcome(
     i2s: I2S0,

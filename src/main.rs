@@ -10,6 +10,7 @@ mod network;
 mod protocol;
 mod ui;
 mod ws;
+mod utils;
 
 #[derive(Debug, Clone)]
 struct Setting {
@@ -31,6 +32,7 @@ fn main() -> anyhow::Result<()> {
     log_heap();
 
     crate::hal::audio_init();
+    // 初始化 LCD UI
     ui::lcd_init().unwrap();
 
     log_heap();
@@ -70,7 +72,7 @@ fn main() -> anyhow::Result<()> {
         let mut ui = ui::UI::new(None).unwrap();
         ui.text = "You can hold K0 goto setup page".to_string();
         for i in 0..3 {
-            ui.state = format!("Device starting... {}", 3 - i);
+            ui.state = format!("设备启动中... {}", 3 - i);
             ui.display_flush().unwrap();
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
@@ -84,7 +86,7 @@ fn main() -> anyhow::Result<()> {
     let b = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
-
+    // gui初始化
     let mut gui = ui::UI::new(None).unwrap();
 
     let setting = Arc::new(Mutex::new((
