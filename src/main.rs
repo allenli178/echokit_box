@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use esp_idf_svc::eventloop::EspSystemEventLoop;
+use esp_idf_svc::{eventloop::EspSystemEventLoop, hal::gpio};
 
 mod app;
 mod audio;
@@ -9,8 +9,10 @@ mod hal;
 mod network;
 mod protocol;
 mod ui;
-mod ws;
 mod utils;
+mod ws;
+
+use utils::get_nvs_string;
 
 #[derive(Debug, Clone)]
 struct Setting {
@@ -36,26 +38,9 @@ fn main() -> anyhow::Result<()> {
     ui::lcd_init().unwrap();
 
     log_heap();
-    let mut ssid_buf = [0; 32];
-    let ssid = nvs
-        .get_str("ssid", &mut ssid_buf)
-        .map_err(|e| log::error!("Failed to get ssid: {:?}", e))
-        .ok()
-        .flatten();
-
-    let mut pass_buf = [0; 64];
-    let pass = nvs
-        .get_str("pass", &mut pass_buf)
-        .map_err(|e| log::error!("Failed to get pass: {:?}", e))
-        .ok()
-        .flatten();
-
-    let mut server_url = [0; 128];
-    let server_url = nvs
-        .get_str("server_url", &mut server_url)
-        .map_err(|e| log::error!("Failed to get server_url: {:?}", e))
-        .ok()
-        .flatten();
+    let ssid = get_nvs_string(&nvs, "ssid", &mut [0; 32]);
+    let pass = get_nvs_string(&nvs, "pass", &mut [0; 64]);
+    let server_url = get_nvs_string(&nvs, "server_url", &mut [0; 128]);
 
     // 1MB buffer for GIF
     let mut gif_buf = vec![0; 1024 * 1024];
@@ -79,9 +64,9 @@ fn main() -> anyhow::Result<()> {
     }
 
     // Configures the button
-    let mut button = esp_idf_svc::hal::gpio::PinDriver::input(peripherals.pins.gpio0)?;
-    button.set_pull(esp_idf_svc::hal::gpio::Pull::Up)?;
-    button.set_interrupt_type(esp_idf_svc::hal::gpio::InterruptType::PosEdge)?;
+    let mut button = gpio::PinDriver::input(peripherals.pins.gpio0)?;
+    button.set_pull(gpio::Pull::Up)?;
+    button.set_interrupt_type(gpio::InterruptType::PosEdge)?;
 
     let b = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -91,9 +76,9 @@ fn main() -> anyhow::Result<()> {
 
     let setting = Arc::new(Mutex::new((
         Setting {
-            ssid: ssid.unwrap_or_default().to_string(),
-            pass: pass.unwrap_or_default().to_string(),
-            server_url: server_url.unwrap_or_default().to_string(),
+            ssid: ssid.unwrap_or_default(),
+            pass: pass.unwrap_or_default(),
+            server_url: server_url.unwrap_or_default(),
             background_gif: (Vec::with_capacity(1024 * 1024), false), // 1MB
         },
         nvs,
